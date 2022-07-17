@@ -1,0 +1,1 @@
+gardevoir: python3 -m gardevoir

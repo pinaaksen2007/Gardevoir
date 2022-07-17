@@ -1,0 +1,180 @@
+# Gardevoir PokeBot
+# Copyright (C) 2022 KuuhakuTeam
+#
+# This file is a part of < https://github.com/KuuhakuTeam/Gardevoir/ >
+# PLease read the GNU v3.0 License Agreement in 
+# <https://www.github.com/KuuhakuTeam/Gardevoir/blob/master/LICENSE/>
+
+import re
+import os
+import shutil
+
+from typing import Union
+from wget import download
+from PIL import Image, ImageDraw, ImageFont
+
+from pyrogram import filters
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
+
+from gardevoir import ralts, Config, trg
+from gardevoir.helpers import get_response, input_str
+
+BASE_API = "https://pokeapi.co/api/v2/pokemon/"
+BASE_SPRITE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/"
+
+FONT_ = "gardevoir/resources/fire_red.ttf"
+TYPES = "gardevoir/resources/types/"
+BUTTON_BACK = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("Back", callback_data="dex_back"),
+                ]
+            ]
+        )
+
+
+def check_draw(dex_id: int, types: str, name: str, height: int, weight: int) -> str:
+    filename = f"{dex_id}.png"
+    if(os.path.exists(Config.POKEDEX_PATH + filename)):
+        final_img = Config.POKEDEX_PATH + filename
+    else:
+        # draw sprite
+        img = Image.open("gardevoir/resources/template.png")
+        draw = ImageDraw.Draw(img)
+        black = "#141414"
+        spr_ = download(BASE_SPRITE + filename, Config.DOWN_PATH)
+        try:
+            spr_convert = Image.open(spr_).convert("RGBA")
+            img.paste(spr_convert, (70, 85), spr_convert)
+            os.remove(spr_)
+        except Exception as ex:
+            print(ex)
+
+        # draw type
+        typi = types.split()
+        try:
+            if len(typi) > 1:
+                ty_convert0 = Image.open(TYPES + f"{typi[0]}.png").convert("RGBA")
+                ty_convert1 = Image.open(TYPES + f"{typi[1]}.png").convert("RGBA")
+                img.paste(ty_convert0, (306, 135))
+                img.paste(ty_convert1, (394, 135))
+            else:
+                ty_convert = Image.open(TYPES + f"{typi[0]}.png").convert("RGBA")
+                img.paste(ty_convert, (350, 135))
+        except Exception as ex:
+            print(ex)
+
+        # draw name/id/height/weight
+        dex = dex_format(dex_id)
+        height_ = f"{height:.1f}m"
+        weight_ = f"{weight:.2f}kg"
+        font_ = ImageFont.truetype(FONT_, 31)
+        draw.text((275, 60), f"{dex} {name}", fill=black, font=font_)
+        draw.text((415, 176), height_, fill=black, font=font_)
+        draw.text((400, 206), weight_, fill=black, font=font_)
+        img.save(filename, format="png")
+        final_img = filename
+    return final_img
+
+
+def dex_format(dex_id) -> str:
+    split = [int(i) for i in str(dex_id)]
+    if len(split) == 1:
+        dex = f"00{dex_id}"
+    elif len(split) == 2:
+        dex = f"0{dex_id}"
+    else:
+        dex = dex_id
+    return dex
+
+
+@ralts.on_callback_query(filters.regex(pattern=r"^dex_back$"))
+@ralts.on_message(filters.command(["pokedex", "dex"], trg))
+async def status_(c: ralts, m: Union[Message, CallbackQuery]):
+    user_id = m.from_user.id
+    """
+    capt = "__For more information, use buttons below__"
+    keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                    text="✾ Stats", callback_data=f"_dex.{user_id}|{dex_id}"),
+                    InlineKeyboardButton(
+                        text="✾ Favorite", callback_data="fav_dex"),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="✾ Moves", callback_data="moves_dex"),
+                    InlineKeyboardButton(
+                        text="✾ Present in games", callback_data="games_dex"),
+                ],
+            ]
+        )
+    """
+    if isinstance(m, Message):
+        search = input_str(m).lower()
+        if not search:
+            return await m.reply("__I need you to enter the name of a pokemon.\nEx:__ `/pokedex gardevoir`")
+        try:
+            view_data = await get_response.json(link=BASE_API + search)
+        except ValueError:
+            return await m.reply("__Is this a pokemon?__")
+        
+        # poke infos
+        name = (view_data["name"]).capitalize()
+        dex_id = view_data["id"]
+        weight = view_data["weight"]
+        height = view_data["height"]
+
+        # stats poke
+        types = ""
+        for type_ in view_data["types"]:
+            types += f"{type_['type']['name']} "
+        filename = check_draw(dex_id, types, name, height, weight)
+        await m.reply_photo(filename)
+        try:
+            shutil.move(filename, Config.POKEDEX_PATH)
+        except shutil.Error:
+            return
+    if isinstance(m, CallbackQuery):
+        await c.edit_message_caption(
+            chat_id=m.message.chat.id,
+            message_id=m.message.id,
+            #caption=capt,
+        )
+
+
+@ralts.on_callback_query(filters.regex(pattern=r"(_dex)$"))
+async def stats_(c: ralts, m: CallbackQuery):
+    uid, dex_id = m.data.split("|")
+    user_id = re.sub(r"^\_mute\.", "", uid)
+    if not m.from_user.id == int(user_id):
+        return await m.answer("Apenas quem solicitou o vídeo pode escolher as opções.", show_alert=True)
+    view_data = await get_response.json(link=BASE_API + dex_id)
+    status = ""
+    name = (view_data["name"]).capitalize()
+    for stat in view_data["stats"]:
+        status += f"│- __{stat['stat']['name']}:__ `{stat['base_stat']}`\n"
+    msg = f"╭─❑ 「 **{name}** 」 ❑──\n{status}╰❑"
+    await c.edit_message_caption(
+        chat_id=m.message.chat.id,
+        message_id=m.message.id,
+        caption=msg,
+        reply_markup=BUTTON_BACK
+    )
+
+
+
+@ralts.on_callback_query(filters.regex(pattern=r"fav_dex$"))
+async def fav_(c: ralts, m: CallbackQuery):
+    await m.answer("soon", show_alert=True)
+
+
+@ralts.on_callback_query(filters.regex(pattern=r"moves_dex$"))
+async def move_(c: ralts, m: CallbackQuery):
+    await m.answer("soon", show_alert=True)
+
+
+@ralts.on_callback_query(filters.regex(pattern=r"games_dex$"))
+async def games_(c: ralts, m: CallbackQuery):
+    await m.answer("soon", show_alert=True)
