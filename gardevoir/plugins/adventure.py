@@ -22,7 +22,6 @@ MSG = "<b>Hello there, welcome to the world of pokemon. My name is Oak.\n\nBefor
 
 @ralts.on_callback_query(filters.regex(pattern=r"^_start_adventure\|(.*)"))
 @ralts.on_message(filters.command("adventure", trg))
-@check_user
 async def adventure(_, m: Union[Message, CallbackQuery]):
     btn_ = [
         [
@@ -36,6 +35,9 @@ async def adventure(_, m: Union[Message, CallbackQuery]):
             return await m.reply("<b>You already started your pokemon journey</b>")
         await m.reply_photo("https://telegra.ph/file/dded46ce66300898eb023.jpg", caption=MSG, reply_markup=InlineKeyboardMarkup(btn_))
     elif isinstance(m, CallbackQuery):
+        data, uid = m.data.split("|")
+        if not uid == m.from_user.id:
+            return await m.answer("This is not for you!!!",show_alert=True)
         await m.message.delete()
         await ralts.send_photo(m.message.chat.id, photo="https://telegra.ph/file/dded46ce66300898eb023.jpg", caption=MSG, reply_markup=InlineKeyboardMarkup(btn_))
 
@@ -43,13 +45,30 @@ async def adventure(_, m: Union[Message, CallbackQuery]):
 @ralts.on_callback_query(filters.regex(pattern=r"^_adventure\|(.*)"))
 @check_user
 async def select_poke(_, c_q: CallbackQuery):
-    await c_q.edit_message_media(media=InputMediaPhoto(media="https://telegra.ph/file/e0a52ab73cfe98a7fd398.jpg", caption="<b>To start your adventure in the pokemon world first choose your starter pokemon.</b>"), reply_markup=starter_select())
+    btn_ = [
+        [
+            InlineKeyboardButton("Bulbasaur", callback_data=f"_starter|1|{c_q.from_user.id}"),
+            InlineKeyboardButton("Charmander", callback_data=f"_starter|4|{c_q.from_user.id}"),
+            InlineKeyboardButton("Squirtle", callback_data=f"_starter|7|{c_q.from_user.id}")
+        ],
+        [
+            InlineKeyboardButton("Chikorita", callback_data=f"_starter|152|{c_q.from_user.id}"),
+            InlineKeyboardButton("Cyndaquil", callback_data=f"_starter|155|{c_q.from_user.id}"),
+            InlineKeyboardButton("Totodile", callback_data=f"_starter|158|{c_q.from_user.id}")
+        ],
+        [
+            InlineKeyboardButton("Treecko", callback_data=f"_starter|252|{c_q.from_user.id}"),
+            InlineKeyboardButton("Torchic", callback_data=f"_starter|255|{c_q.from_user.id}"),
+            InlineKeyboardButton("Mudkip", callback_data=f"_starter|258|{c_q.from_user.id}")
+        ],
+    ]
+    await c_q.edit_message_media(media=InputMediaPhoto(media="https://telegra.ph/file/e0a52ab73cfe98a7fd398.jpg", caption="<b>To start your adventure in the pokemon world first choose your starter pokemon.</b>"), reply_markup=InlineKeyboardMarkup(btn_))
 
 
 @ralts.on_callback_query(filters.regex(pattern=r"_starter\|(.*)"))
 @check_user
 async def confirm_poke(_, c_q: CallbackQuery):
-    data, pid = c_q.data.split("|")
+    data, pid, uid = c_q.data.split("|")
     view_data = await get_response.json(link=f"https://pokeapi.co/api/v2/pokemon/{pid}")
     status, types = "", ""
     name = (view_data["name"])
@@ -60,7 +79,7 @@ async def confirm_poke(_, c_q: CallbackQuery):
     msg = f"╭─❑ 「 <b>{name.capitalize()}</b> 」 ❑──\n{types}╰❑\n╭─❑ 「 <b>Status Base</b> 」 ❑──\n{status}╰❑\n\n<b>Would you like to choose this pokemon as your starter?</b>"
     btn_ = [
         [
-            InlineKeyboardButton("Yes, I'm sure", callback_data=f"add_to_bag|{pid}")
+            InlineKeyboardButton("Yes, I'm sure", callback_data=f"add_to_bag|{pid}|{c_q.from_user.id}")
         ],
         [
             InlineKeyboardButton("Choose another", callback_data=f"_adventure|{c_q.from_user.id}")
@@ -72,34 +91,12 @@ async def confirm_poke(_, c_q: CallbackQuery):
 @ralts.on_callback_query(filters.regex(pattern=r"add_to_bag\|(.*)"))
 @check_user
 async def confirm_poke(_, c_q: CallbackQuery):
-    data, pid = c_q.data.split("|")
+    data, pid, uid = c_q.data.split("|")
     view_data = await get_response.json(link=f"https://pokeapi.co/api/v2/pokemon/{pid}")
     name = view_data["name"]
     await asyncio.gather(
         add_to_pokebag(c_q.from_user.id, pid, name, name, 1, 0, is_shiny()),
         c_q.edit_message_caption(caption=f"<b>Congratulations, you chose {name} as your starter. take good care of him</b>")
     )
-    
-
-
-def starter_select() -> InlineKeyboardMarkup:
-    btn_ = [
-        [
-            InlineKeyboardButton("Bulbasaur", callback_data="_starter|1"),
-            InlineKeyboardButton("Charmander", callback_data="_starter|4"),
-            InlineKeyboardButton("Squirtle", callback_data="_starter|7")
-        ],
-        [
-            InlineKeyboardButton("Chikorita", callback_data="_starter|152"),
-            InlineKeyboardButton("Cyndaquil", callback_data="_starter|155"),
-            InlineKeyboardButton("Totodile", callback_data="_starter|158")
-        ],
-        [
-            InlineKeyboardButton("Treecko", callback_data="_starter|252"),
-            InlineKeyboardButton("Torchic", callback_data="_starter|255"),
-            InlineKeyboardButton("Mudkip", callback_data="_starter|258")
-        ],
-    ]
-    return InlineKeyboardMarkup(btn_)
 
 

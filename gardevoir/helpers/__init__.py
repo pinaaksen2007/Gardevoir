@@ -10,6 +10,6 @@ from .database.data import (
     add_gp, add_user, del_gp, find_gp, find_user, find_bag
 )
 from .database.pokedb import add_to_pokebag, add_to_user, is_shiny
-from .func import control_user, check_user
+from .func import check_user
 from .tools import is_dev, time_formatter, input_str, uptime
 from .aiohttp import AioHttp as get_response
