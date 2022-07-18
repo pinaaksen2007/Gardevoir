@@ -29,7 +29,7 @@ BASE_API = "https://pokeapi.co/api/v2/pokemon/"
 CATCH = db("TEMP_CATCH")
 GROUPS = db("GROUPS")
 
-@ralts.on_message(filters.command("spawn", ))
+@ralts.on_message(filters.command("spawn", trg))
 async def sp(_, m: Message):
     if not is_dev(m.from_user.id):
         return
@@ -40,31 +40,32 @@ async def sp(_, m: Message):
 
 
 async def spawn_():
-    dex_id = random.choice(range(0,898))
-    data = await get_response.json(link=f"{BASE_API}{dex_id}")
-    shiny  = False
-    name = data["name"]
-    exp = data["base_experience"]
-    if (data["sprites"]["front_shiny"]) != None:
-        shiny = is_shiny()
-    poke_spawn = {
-        "$set": {
-            "id": dex_id,
-            "pokemon": name,
-            "exp": exp,
-            "shiny": shiny
-            }
-        }
-    image = await draw_catching(dex_id, shiny)
     glist = GROUPS.find()
     async for chats in glist:
         if chats == None:
             return
         else:
             try:
+                dex_id = random.choice(range(0,898))
+                data = await get_response.json(link=f"{BASE_API}{dex_id}")
+                shiny  = False
+                name = data["name"]
+                exp = data["base_experience"]
+                if (data["sprites"]["front_shiny"]) != None:
+                    shiny = is_shiny()
+                poke_spawn = {
+                    "$set": {
+                        "id": dex_id,
+                        "pokemon": name,
+                        "exp": exp,
+                        "shiny": shiny
+                        }
+                    }
+                image = await draw_catching(dex_id, shiny)
                 await CATCH.update_one({"chat_id": chats["chat_id"]}, poke_spawn, upsert=True)
                 await asyncio.sleep(1)
-                await ralts.send_photo(chat_id=chats["chat_id"], photo=image)
+                await ralts.send_photo(chat_id=chats["chat_id"], photo=image, caption="<i> wild pokemon appeared\ntype </i><code>/catch pokemon name<code>")
+                await asyncio.sleep(2)
             except ChatIdInvalid:
                 pass
             except ChatWriteForbidden:
@@ -77,7 +78,7 @@ async def spawn_():
 async def draw_catching(dex_id: int, shiny: bool):
     """ draw sprite """
     filename = f"{dex_id}.png"
-    img = Image.open("gardevoir/resources/template_catch.png")
+    img = Image.open("gardevoir/resources/catch.png")
     if shiny:
         spr_ = download(BASE_SHINY + filename, Config.DOWN_PATH)
     else:

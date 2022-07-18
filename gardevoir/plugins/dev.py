@@ -27,12 +27,26 @@ from pyrogram.types import Message
 from gardevoir import ralts, START_TIME, trg
 from gardevoir.helpers import is_dev, time_formatter, db, input_str
 
+try:
+    from signal import CTRL_C_EVENT as SIGTERM
+except ImportError:
+    from signal import SIGTERM
+
+
 REPO_ = "https://github.com/KuuhakuTeam/Gardevoir"
 BRANCH_ = "master"
 
 USERS = db("USERS")
 CATCH = db("TEMP_CATCH")
 POKEBAG = db("POKEBAG")
+
+
+@ralts.on_message(filters.command("shutdown", trg))
+async def clear_(_, m: Message):
+    if not is_dev(m.from_user.id):
+        return
+    await m.reply("Gardevoir returned to pokeball.")
+    os.kill(os.getpid(), SIGTERM)
 
 
 @ralts.on_message(filters.command("cleardb", trg))

@@ -29,13 +29,16 @@ async def adventure(_, m: Union[Message, CallbackQuery]):
         ]
     ]
     if isinstance(m, Message):
-        if not await find_user(m.from_user.id):
-            await add_user(m.from_user.id)
-        if await find_bag(m.from_user.id):
+        user = m.from_user.id
+        if not await find_user(user):
+            await add_user(user)
+        if await find_bag(user):
             return await m.reply("<b>You already started your pokemon journey</b>")
         await m.reply_photo("https://telegra.ph/file/dded46ce66300898eb023.jpg", caption=MSG, reply_markup=InlineKeyboardMarkup(btn_))
     elif isinstance(m, CallbackQuery):
         user = m.message.from_user.id
+        if not await find_user(user):
+            await add_user(user)
         if user in Config.DEV_USERS or user==int(m.data.split("|").pop()):
             return await m.answer("This is not for you!!!",show_alert=True)
         await m.message.delete()
