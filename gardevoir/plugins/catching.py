@@ -47,7 +47,7 @@ async def catch_(c: ralts, m: Message):
             if shiny == True:
                 name = f"✨ {name}"
             await asyncio.gather(
-                m.reply(f"<b>🌟 Congratulations {user.mention}!</b>\n\n<i>You caught a level {level} {name}! Added to Pokebag.\nYou received {xp_} Experience and 35 Pokedolars!</i>"),
+                m.reply(f"<b>🌟 Congratulations {user.mention}!</b>\n\n<i>You caught a level {level} {name}! Added to Pokebag.\nYou received {xp_} Experience and 35 Pokedolars!</i>\n\n<b>Next pokemon will appear soon.</b>"),
                 CATCH.delete_one({"chat_id": m.chat.id}),
                 add_to_pokebag(user.id, id_, name, name, level, 0, shiny),
                 add_to_user(user.id, xp_, 35)
