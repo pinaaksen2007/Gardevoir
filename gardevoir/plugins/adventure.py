@@ -11,7 +11,7 @@ from typing import Union
 from pyrogram import filters
 from pyrogram.types import Message, CallbackQuery, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
 
-from gardevoir import ralts, trg
+from gardevoir import ralts, trg, Config
 from gardevoir.helpers import db, get_response, check_user, add_to_pokebag, is_shiny, find_bag, find_user, add_user
 
 
@@ -35,8 +35,8 @@ async def adventure(_, m: Union[Message, CallbackQuery]):
             return await m.reply("<b>You already started your pokemon journey</b>")
         await m.reply_photo("https://telegra.ph/file/dded46ce66300898eb023.jpg", caption=MSG, reply_markup=InlineKeyboardMarkup(btn_))
     elif isinstance(m, CallbackQuery):
-        data, uid = m.data.split("|")
-        if not uid == m.from_user.id:
+        user = m.message.from_user.id
+        if user in Config.DEV_USERS or user==int(m.data.split("|").pop()):
             return await m.answer("This is not for you!!!",show_alert=True)
         await m.message.delete()
         await ralts.send_photo(m.message.chat.id, photo="https://telegra.ph/file/dded46ce66300898eb023.jpg", caption=MSG, reply_markup=InlineKeyboardMarkup(btn_))
