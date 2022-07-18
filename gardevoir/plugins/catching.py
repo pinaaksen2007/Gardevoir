@@ -25,18 +25,12 @@ CATCH = db("TEMP_CATCH")
 @ralts.on_message(filters.command("catch", trg))
 async def catch_(c: ralts, m: Message):
     query = input_str(m)
+    if not await find_bag(m.from_user.id):
+        return await m.reply("<b>You still don't have registration in our pokemon academy, talk to Professor Oak using /adventure to enter the pokemon world</b>")
     if not query:
         return
     found = await CATCH.find_one({"chat_id": m.chat.id})
     if found:
-        if not await find_bag(m.from_user.id):
-            msg = "<b>You still don't have registration in our pokemon academy, talk to Professor Oak to enter the pokemon world</b>"
-            btn_ = [
-                [
-                    InlineKeyboardButton("Talk to Oak", callback_data=f"_start_adventure|{m.from_user.id}")
-                ]
-            ]
-            return await m.reply(msg, reply_markup=InlineKeyboardMarkup(btn_))
         name = found["pokemon"]
         level = min(max(int(random.normalvariate(20, 10)), 1), 100)
         id_ = found["id"]

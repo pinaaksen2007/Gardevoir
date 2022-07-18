@@ -64,15 +64,16 @@ async def spawn_():
                 image = await draw_catching(dex_id, shiny)
                 await CATCH.update_one({"chat_id": chats["chat_id"]}, poke_spawn, upsert=True)
                 await asyncio.sleep(1)
-                await ralts.send_photo(chat_id=chats["chat_id"], photo=image, caption="<i> wild pokemon appeared\ntype </i><code>/catch pokemon name<code>")
+                await ralts.send_photo(chat_id=chats["chat_id"], photo=image, caption="<i> wild pokemon appeared\ntype </i><code>/catch pokemon name</code>")
                 await asyncio.sleep(2)
+                os.remove(image)
             except ChatIdInvalid:
                 pass
             except ChatWriteForbidden:
                 pass
             except ChannelInvalid:
                 pass
-    os.remove(image)
+    
 
 
 async def draw_catching(dex_id: int, shiny: bool):

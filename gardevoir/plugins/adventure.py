@@ -6,12 +6,11 @@
 # <https://www.github.com/KuuhakuTeam/Gardevoir/blob/master/LICENSE/>
 
 import asyncio
-from typing import Union
 
 from pyrogram import filters
 from pyrogram.types import Message, CallbackQuery, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
 
-from gardevoir import ralts, trg, Config
+from gardevoir import ralts, trg
 from gardevoir.helpers import db, get_response, check_user, add_to_pokebag, is_shiny, find_bag, find_user, add_user
 
 
@@ -20,29 +19,19 @@ USERS = db("USERS")
 MSG = "<b>Hello there, welcome to the world of pokemon. My name is Oak.\n\nBefore starting your adventure as a pokemon master, you first need to define your starting pokemon. Choose wisely as he will be your companion until the end of your journey.</b>"
 
 
-@ralts.on_callback_query(filters.regex(pattern=r"^_start_adventure\|(.*)"))
 @ralts.on_message(filters.command("adventure", trg))
-async def adventure(_, m: Union[Message, CallbackQuery]):
+async def adventure(_, m: Message):
+    user = m.from_user.id
     btn_ = [
         [
-            InlineKeyboardButton("Start Adventure", callback_data=f"_adventure|{m.from_user.id}")
+            InlineKeyboardButton("Start Adventure", callback_data=f"_adventure|{user}")
         ]
     ]
-    if isinstance(m, Message):
-        user = m.from_user.id
-        if not await find_user(user):
-            await add_user(user)
-        if await find_bag(user):
-            return await m.reply("<b>You already started your pokemon journey</b>")
-        await m.reply_photo("https://telegra.ph/file/dded46ce66300898eb023.jpg", caption=MSG, reply_markup=InlineKeyboardMarkup(btn_))
-    elif isinstance(m, CallbackQuery):
-        user = m.message.from_user.id
-        if not await find_user(user):
-            await add_user(user)
-        if user in Config.DEV_USERS or user==int(m.data.split("|").pop()):
-            return await m.answer("This is not for you!!!",show_alert=True)
-        await m.message.delete()
-        await ralts.send_photo(m.message.chat.id, photo="https://telegra.ph/file/dded46ce66300898eb023.jpg", caption=MSG, reply_markup=InlineKeyboardMarkup(btn_))
+    if not await find_user(user):
+        await add_user(user)
+    if await find_bag(user):
+        return await m.reply("<b>You already started your pokemon journey</b>")
+    await m.reply_photo("https://telegra.ph/file/dded46ce66300898eb023.jpg", caption=MSG, reply_markup=InlineKeyboardMarkup(btn_))
 
 
 @ralts.on_callback_query(filters.regex(pattern=r"^_adventure\|(.*)"))
